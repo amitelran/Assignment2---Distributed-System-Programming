@@ -1,32 +1,58 @@
 package com.amazonaws.samples;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
-import org.json.JSONObject;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.ec2.model.InstanceType;
+import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
+import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
+import com.amazonaws.services.elasticmapreduce.model.HadoopJarStepConfig;
+import com.amazonaws.services.elasticmapreduce.model.JobFlowInstancesConfig;
+import com.amazonaws.services.elasticmapreduce.model.PlacementType;
+import com.amazonaws.services.elasticmapreduce.model.RunJobFlowRequest;
+import com.amazonaws.services.elasticmapreduce.model.RunJobFlowResult;
+import com.amazonaws.services.elasticmapreduce.model.StepConfig;
 
 public class Main {
 
 	public static void main(String[] args) throws UnsupportedEncodingException, IOException {
-		String line;
-		try (
-		    InputStream fileInputStream = new FileInputStream("C:\\Users\\Amir\\Desktop\\TinyCorpus.txt");
-		    InputStreamReader isr = new InputStreamReader(fileInputStream, "UTF-8");
-		    BufferedReader br = new BufferedReader(isr);
-		) {
-		    while ((line = br.readLine()) != null) {
-		    	JSONObject tweetJson = new JSONObject(line);		// Create a new JSON object from a JSON string
-		    	System.out.println(tweetJson);
-				//tweetJson.getString("text");						// read a field of type 'type' in 'getType'
-		    }
-		}
+	
+		DefaultAWSCredentialsProviderChain credentials = new DefaultAWSCredentialsProviderChain();			// Search and get credentials file in system
+		AmazonElasticMapReduce mapReduce = AmazonElasticMapReduceClientBuilder.standard().withCredentials(credentials).withRegion(Regions.US_EAST_1).build();
+		 
+		HadoopJarStepConfig hadoopJarStep = new HadoopJarStepConfig()
+		    .withJar("s3n://yourbucket/yourfile.jar") // This should be a full map reduce application.
+		    .withMainClass("some.pack.MainClass")
+		    .withArgs("s3n://yourbucket/input/", "s3n://yourbucket/output/");
+		 
+		StepConfig stepConfig = new StepConfig()
+		    .withName("stepname")
+		    .withHadoopJarStep(hadoopJarStep)
+		    .withActionOnFailure("TERMINATE_JOB_FLOW");
+		 
+		JobFlowInstancesConfig instances = new JobFlowInstancesConfig()
+		    .withInstanceCount(2)
+		    .withMasterInstanceType(InstanceType.M1Small.toString())
+		    .withSlaveInstanceType(InstanceType.M1Small.toString())
+		    .withHadoopVersion("2.2.0").withEc2KeyName("yourkey")
+		    .withKeepJobFlowAliveWhenNoSteps(false)
+		    .withPlacement(new PlacementType("us-east-1a"));
+		 
 		
+		// Set job flow request (the job to run)
+		RunJobFlowRequest runFlowRequest = new RunJobFlowRequest()
+		    .withName("jobname")														// Name of the job flow
+		    .withInstances(instances)													// A specification of the number and type of Amazon EC2 instances.
+		    .withSteps(stepConfig)														// A list of steps to run.
+		    .withLogUri("s3n://yourbucket/logs/");										// The location in Amazon S3 to write the log files of the job flow.
+		 
+		
+		// RunJobFlow creates and starts running a new cluster (job flow).
+		RunJobFlowResult runJobFlowResult = mapReduce.runJobFlow(runFlowRequest);		
+		String jobFlowId = runJobFlowResult.getJobFlowId();								// The job flow ID
+		System.out.println("Ran job flow with id: " + jobFlowId);
 
 	}
 
