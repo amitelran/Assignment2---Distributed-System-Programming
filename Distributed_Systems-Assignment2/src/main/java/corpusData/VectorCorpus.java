@@ -80,6 +80,76 @@ public class VectorCorpus {
 	
 	
 	
+	/*******************	Calculate cosine similarity between two vectors  	********************/
+	// Key in the sparse vector : The term's index in the Corpus vector
+	// Value in the sparse vector : The term's tf_idf
+	
+	
+	public double cosine_Similarity(Map<Integer, Double> sparseVector_A, Map<Integer, Double> sparseVector_B) {
+		double num = 0;
+		double vector_A_squared_sum = 0;
+		double vector_B_squared_sum = 0;
+		double vector_A_squared_sum_root = 0;
+		double vector_B_squared_sum_root = 0;
+		double sum_vectors_components = 0;
+		
+		
+		/* ************* Calculate vector_A sum of squares squared root ************* */
+		
+		
+		for (Map.Entry<Integer, Double> entry : sparseVector_A.entrySet()) 
+		{
+			System.out.println("cosine_Similarity vector A: " + entry.getKey() + " tf_idf: " + entry.getValue());
+			
+			num = entry.getValue();												// Get the tf_idf
+			num = (num * num);													// Square it
+			vector_A_squared_sum += num;										// Sum of squares
+		}
+		vector_A_squared_sum_root = Math.sqrt(vector_A_squared_sum);
+		
+		
+		/* ************* Calculate vector_B sum of squares squared root ************* */
+		
+		
+		for (Map.Entry<Integer, Double> entry : sparseVector_B.entrySet()) 
+		{
+			System.out.println("cosine_Similarity vector B: " + entry.getKey() + " tf_idf: " + entry.getValue());
+			
+			num = entry.getValue();												// Get the tf_idf
+			num = (num * num);													// Square it
+			vector_B_squared_sum += num;										// Sum of squares 
+		}
+		vector_B_squared_sum_root = Math.sqrt(vector_B_squared_sum);
+		
+		
+		/* ************* If any of the rooted sums is 0 somehow, return 0 ************* */
+		
+		
+		if ((vector_A_squared_sum_root == 0) || (vector_B_squared_sum_root == 0)) {
+			return 0;
+		}
+		
+		
+		/* ************* Iterate through vector_A, and for each component, look for corresponding component in B (if exists) and sum ************* */
+		
+		
+		for (Map.Entry<Integer, Double> entry : sparseVector_A.entrySet()) 
+		{
+			if (!(sparseVector_B.containsKey(entry.getKey()))) {									// Check that the key in vector A (representing a term) exists in vector B
+				continue;
+			}
+			sum_vectors_components += (entry.getValue() + sparseVector_B.get(entry.getKey()));   	// Sum of corresponding components in the sparse vectors
+		}
+		
+		
+		/* ************* Return cosine similarity ************* */
+		
+		
+		return (sum_vectors_components / (vector_A_squared_sum_root * vector_B_squared_sum_root));
+	}
+	
+	
+	
 	/*****************************	Getters	 ********************************/
 	
 	
