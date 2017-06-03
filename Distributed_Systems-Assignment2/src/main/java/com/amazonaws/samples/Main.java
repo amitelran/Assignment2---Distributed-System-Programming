@@ -23,14 +23,15 @@ public class Main {
 
 	public static void main(String[] args) throws UnsupportedEncodingException, IOException {
 	
-		DefaultAWSCredentialsProviderChain credentials = new DefaultAWSCredentialsProviderChain();			// Search and get credentials file in system
-		AmazonElasticMapReduce mapReduce = AmazonElasticMapReduceClientBuilder.standard().withCredentials(credentials).withRegion(Regions.US_EAST_1).build();
+		//DefaultAWSCredentialsProviderChain credentials = new DefaultAWSCredentialsProviderChain();			// Search and get credentials file in system
+		//AmazonElasticMapReduce mapReduce = AmazonElasticMapReduceClientBuilder.standard().withCredentials(credentials).withRegion(Regions.US_EAST_1).build();
 		 
 		// Set stop words vector from file
 		Vector<String> stopWords = new Vector<String>();
-		File file = new File("stop_words.txt");
+		File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
 		Words.readStopWords(file, stopWords);
 		
+		/*
 		HadoopJarStepConfig hadoopJarStep = new HadoopJarStepConfig()
 		    .withJar("s3n://yourbucket/yourfile.jar") // This should be a full map reduce application.
 		    .withMainClass("some.pack.MainClass")
@@ -65,7 +66,7 @@ public class Main {
 		RunJobFlowResult runJobFlowResult = mapReduce.runJobFlow(runFlowRequest);		
 		String jobFlowId = runJobFlowResult.getJobFlowId();								// The job flow ID
 		System.out.println("Ran job flow with id: " + jobFlowId);
-
+	*/
 	}
 
 }

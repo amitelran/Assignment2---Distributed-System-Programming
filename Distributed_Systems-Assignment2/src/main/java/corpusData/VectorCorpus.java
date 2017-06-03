@@ -43,7 +43,8 @@ public class VectorCorpus {
 	/*******************	Update/add word in Word vector	********************/
 	
 	
-	public void updateWordVector(String term, Vector<String> stopWords, int wordIndex) {
+	public void updateWordVector(String term, Vector<String> stopWords) {
+		int formerVal = 0;
 		
 		// Check that term is not a stop word
 		if (!(Words.isStopWord(term, stopWords))) {
@@ -51,12 +52,13 @@ public class VectorCorpus {
 				occurVector.put(term, 1);
 			}
 			else {
-				int formerVal = occurVector.get(term);
-				System.out.println("former value for term " + term + ": " + formerVal);
+				formerVal = occurVector.get(term);
+				System.out.println("updateWordVector: former value for term " + term + ": " + formerVal);
 				occurVector.put(term, formerVal + 1);
-				System.out.println("Current value for term " + term + ": " + occurVector.get(term));
+				System.out.println("updateWordVector: Current value for term " + term + ": " + occurVector.get(term));
 			}
-		}
+			Corpus.updateWordCorpus(term, stopWords);			// Update word in corpus's data	
+		}					
 	}
 	
 	

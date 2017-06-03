@@ -50,23 +50,22 @@ public class Corpus {
 	/*******************	Add or update word in corpus (increments by one)	********************
 	 * @param term: the word to update its counter
 	 * Return the word index
+	 * No need to check if the term is a stop word since already checked in the VectorCorpus
 	 */
 	
 	
-	public void updateWordCorpus(String term, Vector<String> stopWords) {
-		if (!(Words.isStopWord(term, stopWords))){
+	public static void updateWordCorpus(String term, Vector<String> stopWords) {
 			
-			// If the words map doesn't contain the word, initialize counter by 1, and add to mapping
-			if (!(wordsIndex.containsKey(term))){
-				corpusVector.add(1);
-				wordsIndex.put(term, corpusVector.size()-1);
-			}
-			
-			// Else, increment the word counter by 1
-			else { 
-				int currVal = corpusVector.elementAt(wordsIndex.get(term));			// Get the current value at the index in the vector
-				corpusVector.set(wordsIndex.get(term), currVal + 1);				// Increment element at index 'wordsIndex.get' by 1
-			}
+		// If the words map doesn't contain the word, initialize counter by 1, and add to mapping
+		if (!(wordsIndex.containsKey(term))){
+			corpusVector.add(1);
+			wordsIndex.put(term, corpusVector.size()-1);
+		}
+		
+		// Else, increment the word counter by 1
+		else { 
+			int currVal = corpusVector.elementAt(wordsIndex.get(term));			// Get the current value at the index in the vector
+			corpusVector.set(wordsIndex.get(term), currVal + 1);				// Increment element at index 'wordsIndex.get' by 1
 		}
 	}
 	
