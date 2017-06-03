@@ -1,7 +1,9 @@
 package com.amazonaws.samples;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Vector;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Regions;
@@ -15,6 +17,8 @@ import com.amazonaws.services.elasticmapreduce.model.RunJobFlowRequest;
 import com.amazonaws.services.elasticmapreduce.model.RunJobFlowResult;
 import com.amazonaws.services.elasticmapreduce.model.StepConfig;
 
+import corpusData.Words;
+
 public class Main {
 
 	public static void main(String[] args) throws UnsupportedEncodingException, IOException {
@@ -22,6 +26,11 @@ public class Main {
 		DefaultAWSCredentialsProviderChain credentials = new DefaultAWSCredentialsProviderChain();			// Search and get credentials file in system
 		AmazonElasticMapReduce mapReduce = AmazonElasticMapReduceClientBuilder.standard().withCredentials(credentials).withRegion(Regions.US_EAST_1).build();
 		 
+		// Set stop words vector from file
+		Vector<String> stopWords = new Vector<String>();
+		File file = new File("stop_words.txt");
+		Words.readStopWords(file, stopWords);
+		
 		HadoopJarStepConfig hadoopJarStep = new HadoopJarStepConfig()
 		    .withJar("s3n://yourbucket/yourfile.jar") // This should be a full map reduce application.
 		    .withMainClass("some.pack.MainClass")

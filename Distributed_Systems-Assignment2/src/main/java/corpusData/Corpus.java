@@ -3,14 +3,16 @@ package corpusData;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Vector;
 
 import recordReader.TweetKey;
 
 public class Corpus {
 
-	protected Path filePath;												// The path of the corpus file the vector belongs to
-	protected VectorCorpus corpusVector;									// Words vector for all words in the corpus
-	protected Map<TweetKey, VectorCorpus> vectorMap;						// Corpus's map of tweets and their corresponding vectors
+	protected Path filePath;														// The path of the corpus file the vector belongs to
+	protected static Vector<Integer> corpusVector;									// Vector for all words occurrences counter in the corpus
+	protected static Map<String, Integer> wordsIndex;								// Mapping of all words and their correspnding index in the vectors
+	protected static Map<TweetKey, VectorCorpus> vectorMap;							// Corpus's map of tweets and their corresponding vectors
 	
 	
 	
@@ -23,9 +25,10 @@ public class Corpus {
 	 */
 	
 	Corpus(Path path) {
-		corpusVector = new VectorCorpus(path, null);
+		corpusVector = new Vector<Integer>();
 		filePath = path;
 		vectorMap = new HashMap<TweetKey, VectorCorpus>();
+		wordsIndex = new HashMap<String, Integer>();
 	}
 	
 	
@@ -46,20 +49,23 @@ public class Corpus {
 	
 	/*******************	Add or update word in corpus (increments by one)	********************
 	 * @param term: the word to update its counter
+	 * Return the word index
 	 */
 	
 	
-	public void updateWordCorpus(String term) {
-		if (!isStopWord(term)){
+	public void updateWordCorpus(String term, Vector<String> stopWords) {
+		if (!(Words.isStopWord(term, stopWords))){
 			
-			// If the vector doesn't contain the word, initialize counter by 1
-			if (!(corpusVector.wordMap.containsKey(term))){
-				corpusVector.updateWordVector(term, 1);
+			// If the words map doesn't contain the word, initialize counter by 1, and add to mapping
+			if (!(wordsIndex.containsKey(term))){
+				corpusVector.add(1);
+				wordsIndex.put(term, corpusVector.size()-1);
 			}
 			
 			// Else, increment the word counter by 1
-			else {
-				corpusVector.wordMap.put(term, corpusVector.wordMap.get(term) + 1);
+			else { 
+				int currVal = corpusVector.elementAt(wordsIndex.get(term));			// Get the current value at the index in the vector
+				corpusVector.set(wordsIndex.get(term), currVal + 1);				// Increment element at index 'wordsIndex.get' by 1
 			}
 		}
 	}
@@ -70,7 +76,8 @@ public class Corpus {
 	
 	
 	public Path getFilePath() { return this.filePath; }
-	public VectorCorpus getVector () { return this.corpusVector; }
-	public Map<TweetKey, VectorCorpus> getTweetMap() { return this.vectorMap; }
+	public Vector<Integer> getVector() { return Corpus.corpusVector; }
+	public Map<TweetKey, VectorCorpus> getTweetMap() { return Corpus.vectorMap; }
+	public Map<String, Integer> getWordsIndexMap() { return Corpus.wordsIndex; }
 	
 }
