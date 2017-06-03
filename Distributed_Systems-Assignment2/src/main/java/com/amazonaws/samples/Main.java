@@ -27,18 +27,21 @@ public class Main {
 		    .withMainClass("some.pack.MainClass")
 		    .withArgs("s3n://yourbucket/input/", "s3n://yourbucket/output/");
 		 
+		
 		StepConfig stepConfig = new StepConfig()
 		    .withName("stepname")
 		    .withHadoopJarStep(hadoopJarStep)
 		    .withActionOnFailure("TERMINATE_JOB_FLOW");
 		 
+		
 		JobFlowInstancesConfig instances = new JobFlowInstancesConfig()
-		    .withInstanceCount(2)
+		    .withInstanceCount(2)														// Number of instances to run
 		    .withMasterInstanceType(InstanceType.M1Small.toString())
 		    .withSlaveInstanceType(InstanceType.M1Small.toString())
-		    .withHadoopVersion("2.2.0").withEc2KeyName("yourkey")
-		    .withKeepJobFlowAliveWhenNoSteps(false)
-		    .withPlacement(new PlacementType("us-east-1a"));
+		    .withHadoopVersion("2.2.0")													// Hadoop version
+		    .withEc2KeyName("yourkey")													// EC2 key name
+		    .withKeepJobFlowAliveWhenNoSteps(false)										// Set job to terminate when finishing all steps
+		    .withPlacement(new PlacementType("us-east-1a"));							// Set region as "us-east-1"
 		 
 		
 		// Set job flow request (the job to run)
