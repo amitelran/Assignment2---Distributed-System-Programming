@@ -23,6 +23,7 @@ public class Main {
 
 	public static void main(String[] args) throws UnsupportedEncodingException, IOException {
 	
+		//final int N = 10;																			//  top N similar tweets (argument of the program, should be set to 10)
 		//DefaultAWSCredentialsProviderChain credentials = new DefaultAWSCredentialsProviderChain();			// Search and get credentials file in system
 		//AmazonElasticMapReduce mapReduce = AmazonElasticMapReduceClientBuilder.standard().withCredentials(credentials).withRegion(Regions.US_EAST_1).build();
 		 

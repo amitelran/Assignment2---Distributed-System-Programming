@@ -1,9 +1,13 @@
 package corpusData;
 
-import java.nio.file.Path;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.hadoop.io.WritableComparable;
 
 import recordReader.TweetKey;
 
@@ -16,10 +20,10 @@ import recordReader.TweetKey;
  * we'll save/use the vectors in a SPARSE form, where we save only indices and values that are not zero.
  */
 
-public class VectorCorpus {
+public class VectorCorpus implements WritableComparable<VectorCorpus> {
 	
 	protected TweetKey tweet;									// The tweet for which the vector represents
-	protected Path filePath;									// The path of the corpus file the vector belongs to
+	//protected Path filePath;									// The path of the corpus file the vector belongs to
 	protected Map<String, Integer> occurVector;					// Occurences counter vector
 	protected Map<Integer, Double> sparseVector;				// Vector containing all words (by index in Corpus vector) in the tweet that occur at least once and the tf-idf value
     
@@ -31,9 +35,9 @@ public class VectorCorpus {
      */
 
     
-	VectorCorpus(Path path, TweetKey tweet) {
+	public VectorCorpus(TweetKey tweet) {
 		this.tweet = tweet;
-		filePath = path;
+		//filePath = path;
 		occurVector = new HashMap<String, Integer>();			// Initialize occurrences vector
 		sparseVector = new HashMap<Integer,Double>();			// Initialize tweet words sparse vector 
 	}
@@ -57,7 +61,7 @@ public class VectorCorpus {
 				occurVector.put(term, formerVal + 1);
 				System.out.println("updateWordVector: Current value for term " + term + ": " + occurVector.get(term));
 			}
-			Corpus.updateWordCorpus(term, stopWords);			// Update word in corpus's data	
+			//Corpus.updateWordCorpus(term, stopWords);			// Update word in corpus's data	
 		}					
 	}
 	
@@ -152,13 +156,55 @@ public class VectorCorpus {
 	
 	
 	
-	/*****************************	Getters	 ********************************/
+	/*****************************	Getters	& Setters ********************************/
 	
 	
 	public TweetKey getTweet() { return this.tweet; }
-	public Path getFilePath() { return this.filePath; }
+	//public Path getFilePath() { return this.filePath; }
 	public Map<String, Integer> getOccurrenceVector() { return this.occurVector; }
 	public Map<Integer, Double> getSparseVector() { return this.sparseVector; }
+	
+	public void setTweet(TweetKey tweet) { this.tweet = tweet; }
+	public void setOccurVector(Map<String, Integer> occurVec) { this.occurVector = occurVec; }
+	public void setSparseVector(Map<Integer, Double> sparseVec) { this.sparseVector = sparseVec; }
+
+
+
+	
+	@Override
+	public void readFields(DataInput in) throws IOException {
+		tweet.setID(in.readLong());
+        tweet.setCreatedAt(in.readUTF());
+        
+        Map<String, Integer> occurVec = new HashMap<String, Integer>();
+        String term;
+        
+        while(true) {
+        	term = in.readUTF();
+        	if (term == null) {
+        		break;
+        	}
+        }
+        
+        
+		
+	}
+
+
+
+	@Override
+	public void write(DataOutput out) throws IOException {
+		this.getTweet().write(out);
+		
+		
+	}
+
+
+	// Compare between the tweets of the vectors
+	@Override
+	public int compareTo(VectorCorpus otherVec) {
+		return this.getTweet().compareTo(otherVec.getTweet());
+	}
 
 
 

@@ -40,7 +40,7 @@ public class Corpus {
 
 	public void addTweet(TweetKey tweetkey) {
 		if (!(vectorMap.containsKey(tweetkey))) {
-			VectorCorpus tweetVector = new VectorCorpus(this.filePath, tweetkey);
+			VectorCorpus tweetVector = new VectorCorpus(tweetkey);
 			vectorMap.put(tweetkey, tweetVector);
 		}
 	}

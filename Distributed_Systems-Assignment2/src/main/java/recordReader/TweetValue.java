@@ -25,6 +25,8 @@ public class TweetValue implements Writable {
         text = tweetJson.getString("text");
         favorited = tweetJson.getJSONObject("retweeted_status").getBoolean("favorited");
         retweeted = tweetJson.getJSONObject("retweeted_status").getBoolean("retweeted");
+        System.out.println("TweetValue constructor:  username = " + username + "  text = " + text);
+
     }
     
     

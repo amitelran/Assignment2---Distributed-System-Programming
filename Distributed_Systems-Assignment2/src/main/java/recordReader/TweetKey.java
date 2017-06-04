@@ -32,15 +32,18 @@ public class TweetKey implements WritableComparable<TweetKey> {
     public TweetKey(JSONObject tweetJson) {
         id = tweetJson.getInt("id");
         created_at = tweetJson.getString("created_at");
+        System.out.println("TweetKey constructor:  id = " + id + "  created_at = " + created_at );
     }
  
     
-    /***************	 getters	 ***************/
+    /***************	 getters & setters	 ***************/
     
     
     public long getID() { return id; }
-    
     public String getCreatedAt() { return created_at; }
+    
+    public void setID(long id) { this.id = id; }
+    public void setCreatedAt(String created_at) { this.created_at = created_at; } 
     
     
     /***************	 Read & Write to data methods	 ***************/

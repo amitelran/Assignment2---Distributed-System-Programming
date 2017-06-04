@@ -18,6 +18,8 @@ import org.json.JSONObject;
  * RecordReader, typically, converts the byte-oriented view of the input, provided by the InputSplit, 
  * and presents a record-oriented view for the Mapper and Reducer tasks for processing. 
  * It thus assumes the responsibility of processing record boundaries and presenting the tasks with keys and values.
+ * 
+ * Reference to help understand : https://github.com/alexholmes/hadoop-book/blob/master/src/main/java/com/manning/hip/ch3/json/JsonInputFormat.java
  */
 
 public class TweetRecordReader extends RecordReader<TweetKey,TweetValue> { 
@@ -25,7 +27,8 @@ public class TweetRecordReader extends RecordReader<TweetKey,TweetValue> {
 	// LineRecordReader extracts keys and values from a given text file split, 
 	// where the keys are the positions of the lines and the values are the content of the line
 	
-    LineRecordReader reader;			
+    LineRecordReader reader;
+        
     
     
     /***************************	 Constructor 	***************************/
@@ -52,20 +55,19 @@ public class TweetRecordReader extends RecordReader<TweetKey,TweetValue> {
  
     
     
-    
-    // Read the next <key, value> pair.
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
         return reader.nextKeyValue();
     }
-    
+        
     
     
     // Return key of mapping by reading a JSON object and constructing a TweetKey object
+    // The reader reads the current value/line (which is a Text object), parses it to String, and creates a new JSONObject out of this Text.
     @Override
     public TweetKey getCurrentKey() throws IOException, InterruptedException {
-    	JSONObject tweetJson = new JSONObject(reader.getCurrentValue());
-    	System.out.println(reader.getCurrentValue());
+    	JSONObject tweetJson = new JSONObject(reader.getCurrentValue().toString());
+    	System.out.println("getCurrentKey: " + reader.getCurrentValue() + "after JSON parsing: " + tweetJson);
         return new TweetKey(tweetJson);
     }
     
@@ -73,11 +75,12 @@ public class TweetRecordReader extends RecordReader<TweetKey,TweetValue> {
     
     
     // Return value of mapping by reading a JSON object and constructing a TweetValue object
+    // The reader reads the current value/line (which is a Text object), parses it to String, and creates a new JSONObject out of this Text.
     @Override
     public TweetValue getCurrentValue() throws IOException, InterruptedException {
         try {
-        	JSONObject tweetJson = new JSONObject(reader.getCurrentValue());
-        	System.out.println(reader.getCurrentValue());
+        	JSONObject tweetJson = new JSONObject(reader.getCurrentValue().toString());
+        	System.out.println("getCurrentValue: " + reader.getCurrentValue() + "after JSON parsing: " + tweetJson);
             return new TweetValue(tweetJson);
         } 
         catch (ParseException e) {
@@ -99,7 +102,5 @@ public class TweetRecordReader extends RecordReader<TweetKey,TweetValue> {
     public void close() throws IOException {
         reader.close();        
     }
-    
- 
     
 }
