@@ -23,8 +23,8 @@ public class TweetValue implements Writable {
     public TweetValue(JSONObject tweetJson) throws ParseException {
         username = tweetJson.getJSONObject("user").getString("name"); 
         text = tweetJson.getString("text");
-        favorited = tweetJson.getJSONObject("retweeted_status").getBoolean("favorited");
-        retweeted = tweetJson.getJSONObject("retweeted_status").getBoolean("retweeted");
+        favorited = tweetJson.getBoolean("favorited");
+        retweeted = tweetJson.getBoolean("retweeted");
         System.out.println("TweetValue constructor:  username = " + username + "  text = " + text);
 
     }

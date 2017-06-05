@@ -85,7 +85,7 @@ public class CreateVectors {
 
 			for (Map.Entry<Text, Integer> entry : occurMap.entrySet())
 			{
-				Writable[] writArr = { tweetKey, tweetValue, new IntWritable(occurMap.get(word.toString())), new IntWritable(maxOccur) };
+				Writable[] writArr = { tweetKey, tweetValue, new IntWritable(3), new IntWritable(maxOccur) };
 				TupleWritable tweetTuple = new TupleWritable(writArr);
 				context.write(entry.getKey(), tweetTuple);
 			}
@@ -142,8 +142,8 @@ public class CreateVectors {
 			//conf.set("mapred.map.tasks","10");
 			//conf.set("mapred.reduce.tasks","2");
 
-			File file = new File("stop_words.txt");
-			String stopWords[] = Words.readStopWords(file);
+//			File file = new File(args[2]);
+			String stopWords[] = {"a", "about", "above", "across", "after", "afterwards"};
 			conf.setStrings("stopWords", stopWords);
 			
 
@@ -154,7 +154,11 @@ public class CreateVectors {
 			job.setCombinerClass(Reducer_A.class);
 			job.setReducerClass(Reducer_A.class);
 			job.setOutputKeyClass(LongWritable.class);
+			job.setMapOutputKeyClass(Text.class);
+			job.setMapOutputValueClass(TupleWritable.class);
+			job.setOutputKeyClass(LongWritable.class);
 			job.setOutputValueClass(TupleWritable.class);
+			job.setInputFormatClass(TweetInputFormat.class);
 			TweetInputFormat.addInputPath(job, new Path(args[0]));
 			FileOutputFormat.setOutputPath(job, new Path(args[1]));
 			System.exit(job.waitForCompletion(true) ? 0 : 1);
