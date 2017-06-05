@@ -1,4 +1,4 @@
-package wordCount;
+package createVectors;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,27 +7,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.Vector;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.join.TupleWritable;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.TaskCounter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import corpusData.VectorCorpus;
+import com.google.common.collect.Iterables;
+
 import corpusData.Words;
+import recordReader.TweetInputFormat;
 import recordReader.TweetKey;
 import recordReader.TweetValue;
-
 import org.apache.hadoop.io.LongWritable;
 
 
@@ -35,7 +34,7 @@ import org.apache.hadoop.io.LongWritable;
 // Helpful reference:
 // https://www.dezyre.com/hadoop-tutorial/hadoop-mapreduce-wordcount-tutorial
 
-public class WordCount { 
+public class CreateVectors { 
 
 
 	/**********************		Mapper_A	**********************/
@@ -59,7 +58,7 @@ public class WordCount {
 			List<String> stopWords = Arrays.asList(context.getConfiguration().getStrings("stopWords"));
 
 			int maxOccur = 0;
-			Integer currVal;
+			Integer currVal = 0;
 			Map<Text, Integer> occurMap = new HashMap<Text, Integer>();
 
 			String curWord;
@@ -79,10 +78,10 @@ public class WordCount {
 					occurMap.put(word, currVal+1);
 				}
 				// If needed, update maximal number of occurrences 
-				if (maxOccur < currVal) {
+				if (maxOccur < currVal.intValue()) {
 					maxOccur = currVal;
 				}
-			}			
+			}
 
 			for (Map.Entry<Text, Integer> entry : occurMap.entrySet())
 			{
@@ -91,6 +90,7 @@ public class WordCount {
 				context.write(entry.getKey(), tweetTuple);
 			}
 		}
+	}
 
 
 
@@ -100,64 +100,62 @@ public class WordCount {
 		// To output: KEYOUT = word, VALUEOUT = accumulated number of occurrences in tweet
 
 
-		public static class Reducer_A extends Reducer<Text, TupleWritable, Text, IntWritable> {
-
-
+		public static class Reducer_A extends Reducer<Text, TupleWritable, LongWritable, TupleWritable> {
+			
+			long numOfTweets;
+			
 			@Override
-			public void reduce(TweetKey tweetKey, VectorCorpus tweetVector, Context context) throws IOException,  InterruptedException {
-				int sum = 0;
-				for (IntWritable value : values) {
-					sum += value.get();
+			protected void setup(Reducer<Text, TupleWritable, LongWritable, TupleWritable>.Context context)
+					throws IOException, InterruptedException {
+				Counter counter = context.getCounter(TaskCounter.MAP_INPUT_RECORDS);
+				numOfTweets = counter.getValue();
+				super.setup(context);
+			}
+			
+			@Override
+			public void reduce(Text word, Iterable<TupleWritable> tuples, Context context) throws IOException,  InterruptedException {
+				int tf_d;
+				int max_occur;
+				int num_of_tweets_contains_word = Iterables.size(tuples);
+				
+				double tf;
+				double idf;
+				
+				double tf_idf;
+				
+				for (TupleWritable tuple : tuples) {
+					tf_d = ((IntWritable) tuple.get(2)).get();
+					max_occur = ((IntWritable) tuple.get(3)).get();
+					
+					tf = 0.5 + 0.5*(tf_d/max_occur);
+					idf = Math.log(numOfTweets/num_of_tweets_contains_word);
+
+					tf_idf = tf*idf;
+					Writable[] wordTuple = {word,new DoubleWritable(tf_idf)};
+					context.write( new LongWritable(((TweetKey)tuple.get(0)).getID()), new TupleWritable(wordTuple)); 
 				}
-				context.write(key, new IntWritable(sum)); 
 			}
 		}
-
-
-		/**********************		PARTITIONER_A   	**********************/
-		// Partitioner <KEY, VALUE>
-		// From Mapper_A: KEY = TweetKey, VALUE = CorpusVector
-
-
-		public static class Partitioner_A extends Partitioner<TweetKey, VectorCorpus> {
-
-			// Get the partition number for a given key (hence record) given the total number of partitions ( = total number of reducers)
-			@Override
-			public int getPartition(TweetKey tweetKey, VectorCorpus tweetVector, int numPartitions) {
-				return getLanguage(key) % numPartitions;
-			}
-
-
-			private int getLanguage(Text key) {
-				if (key.getLength() > 0) {
-					int c = key.charAt(0);
-					if (c >= Long.decode("0x05D0").longValue() && c <= Long.decode("0x05EA").longValue())
-						return 1;
-				}
-				return 0;
-			}
-		}
-
-
 
 		public static void main(String[] args) throws Exception {
 			Configuration conf = new Configuration();
 			//conf.set("mapred.map.tasks","10");
 			//conf.set("mapred.reduce.tasks","2");
 
-			File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
-			ArrayWritable stopWordsArray = new ArrayWritable(Words.readStopWords(file));
-			//conf.set("stopWords", stopWordsArray);			// Set path to file in configuration
+			File file = new File("stop_words.txt");
+			String stopWords[] = Words.readStopWords(file);
+			conf.setStrings("stopWords", stopWords);
+			
 
-			Job job = new Job(conf, "word count");
-			job.setJarByClass(WordCount.class);
+		    Job job = Job.getInstance(conf, "TweetVectors");
+		    
+			job.setJarByClass(CreateVectors.class);
 			job.setMapperClass(Mapper_A.class);
-			job.setPartitionerClass(Partitioner_A.class);
 			job.setCombinerClass(Reducer_A.class);
 			job.setReducerClass(Reducer_A.class);
-			job.setOutputKeyClass(Text.class);
-			job.setOutputValueClass(IntWritable.class);
-			FileInputFormat.addInputPath(job, new Path(args[0]));
+			job.setOutputKeyClass(LongWritable.class);
+			job.setOutputValueClass(TupleWritable.class);
+			TweetInputFormat.addInputPath(job, new Path(args[0]));
 			FileOutputFormat.setOutputPath(job, new Path(args[1]));
 			System.exit(job.waitForCompletion(true) ? 0 : 1);
 		}
