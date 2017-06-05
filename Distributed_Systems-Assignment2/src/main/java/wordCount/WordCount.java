@@ -44,28 +44,28 @@ public class WordCount {
 	// To Reducer: KEYOUT = word (Text), VALUEOUT = tuple (TweetKey, TweetValue, number of times word appeared in tweet, maximal number of times any word appeared in the tweet)
 
 
-	public static class Mapper_A extends Mapper<TweetKey, TweetValue, TweetKey, TupleWritable> {
+	public static class Mapper_A extends Mapper<TweetKey, TweetValue, Text, TupleWritable> {
 
 		private Text word = new Text();										// Each word in the text
 
 		// The map function gets tweetKey & tweetValue. 
 		// It generates CorpusVector object that corresponds to the given tweetKey.
 		// In particular, it updates the occurrencesVector mapping inside the CorpusVector.
-		
+
 		@Override
 		public void map(TweetKey tweetKey, TweetValue tweetValue, Context context) throws IOException,  InterruptedException {
-			
+
 			// Set stop words list from Strings array in configuration
 			List<String> stopWords = Arrays.asList(context.getConfiguration().getStrings("stopWords"));
-			
+
 			int maxOccur = 0;
 			Integer currVal;
-			Map<String, Integer> occurMap = new HashMap<String, Integer>();
-			
+			Map<Text, Integer> occurMap = new HashMap<Text, Integer>();
+
 			String curWord;
 			String tweetText = tweetValue.getText();
 			StringTokenizer itr = new StringTokenizer(tweetText);
-			
+
 			// Iterate through all words in tweet text
 			while (itr.hasMoreTokens()) {
 				curWord = itr.nextToken(); 
@@ -76,90 +76,90 @@ public class WordCount {
 					currVal = occurMap.get(curWord);
 					if(currVal == null)
 						currVal = 0;
-					occurMap.put(word.toString(), currVal+1);
+					occurMap.put(word, currVal+1);
 				}
 				// If needed, update maximal number of occurrences 
 				if (maxOccur < currVal) {
 					maxOccur = currVal;
 				}
 			}			
-			
-			for (Map.Entry<String, Integer> entry : occurMap.entrySet())
+
+			for (Map.Entry<Text, Integer> entry : occurMap.entrySet())
 			{
 				Writable[] writArr = { tweetKey, tweetValue, new IntWritable(occurMap.get(word.toString())), new IntWritable(maxOccur) };
 				TupleWritable tweetTuple = new TupleWritable(writArr);
-				context.write(tweetKey, tweetTuple);
+				context.write(entry.getKey(), tweetTuple);
 			}
-	}
-
-
-	
-	/**********************		REDUCER_A	**********************/
-	// Reducer <KEYIN, VALUEIN, KEYOUT, VALUEOUT>
-	// From Mapper_A: KEYIN = TweetKey, VALUEIN = CorpusVector that corresponds to the tweetKey
-	// To output: KEYOUT = word, VALUEOUT = accumulated number of occurrences in tweet
-
-
-	public static class Reducer_A extends Reducer<TweetKey, VectorCorpus, Text, IntWritable> {
-		
-		
-		@Override
-		public void reduce(TweetKey tweetKey, VectorCorpus tweetVector, Context context) throws IOException,  InterruptedException {
-			int sum = 0;
-			for (IntWritable value : values) {
-				sum += value.get();
-			}
-			context.write(key, new IntWritable(sum)); 
-		}
-	}
-
-	
-	/**********************		PARTITIONER_A   	**********************/
-	// Partitioner <KEY, VALUE>
-	// From Mapper_A: KEY = TweetKey, VALUE = CorpusVector
-
-
-	public static class Partitioner_A extends Partitioner<TweetKey, VectorCorpus> {
-		
-		// Get the partition number for a given key (hence record) given the total number of partitions ( = total number of reducers)
-		@Override
-		public int getPartition(TweetKey tweetKey, VectorCorpus tweetVector, int numPartitions) {
-			return getLanguage(key) % numPartitions;
 		}
 
-		
-		private int getLanguage(Text key) {
-			if (key.getLength() > 0) {
-				int c = key.charAt(0);
-				if (c >= Long.decode("0x05D0").longValue() && c <= Long.decode("0x05EA").longValue())
-					return 1;
+
+
+		/**********************		REDUCER_A	**********************/
+		// Reducer <KEYIN, VALUEIN, KEYOUT, VALUEOUT>
+		// From Mapper_A: KEYIN = TweetKey, VALUEIN = CorpusVector that corresponds to the tweetKey
+		// To output: KEYOUT = word, VALUEOUT = accumulated number of occurrences in tweet
+
+
+		public static class Reducer_A extends Reducer<Text, TupleWritable, Text, IntWritable> {
+
+
+			@Override
+			public void reduce(TweetKey tweetKey, VectorCorpus tweetVector, Context context) throws IOException,  InterruptedException {
+				int sum = 0;
+				for (IntWritable value : values) {
+					sum += value.get();
+				}
+				context.write(key, new IntWritable(sum)); 
 			}
-			return 0;
 		}
+
+
+		/**********************		PARTITIONER_A   	**********************/
+		// Partitioner <KEY, VALUE>
+		// From Mapper_A: KEY = TweetKey, VALUE = CorpusVector
+
+
+		public static class Partitioner_A extends Partitioner<TweetKey, VectorCorpus> {
+
+			// Get the partition number for a given key (hence record) given the total number of partitions ( = total number of reducers)
+			@Override
+			public int getPartition(TweetKey tweetKey, VectorCorpus tweetVector, int numPartitions) {
+				return getLanguage(key) % numPartitions;
+			}
+
+
+			private int getLanguage(Text key) {
+				if (key.getLength() > 0) {
+					int c = key.charAt(0);
+					if (c >= Long.decode("0x05D0").longValue() && c <= Long.decode("0x05EA").longValue())
+						return 1;
+				}
+				return 0;
+			}
+		}
+
+
+
+		public static void main(String[] args) throws Exception {
+			Configuration conf = new Configuration();
+			//conf.set("mapred.map.tasks","10");
+			//conf.set("mapred.reduce.tasks","2");
+
+			File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
+			ArrayWritable stopWordsArray = new ArrayWritable(Words.readStopWords(file));
+			//conf.set("stopWords", stopWordsArray);			// Set path to file in configuration
+
+			Job job = new Job(conf, "word count");
+			job.setJarByClass(WordCount.class);
+			job.setMapperClass(Mapper_A.class);
+			job.setPartitionerClass(Partitioner_A.class);
+			job.setCombinerClass(Reducer_A.class);
+			job.setReducerClass(Reducer_A.class);
+			job.setOutputKeyClass(Text.class);
+			job.setOutputValueClass(IntWritable.class);
+			FileInputFormat.addInputPath(job, new Path(args[0]));
+			FileOutputFormat.setOutputPath(job, new Path(args[1]));
+			System.exit(job.waitForCompletion(true) ? 0 : 1);
+		}
+
 	}
-
-
-
-	public static void main(String[] args) throws Exception {
-		Configuration conf = new Configuration();
-		//conf.set("mapred.map.tasks","10");
-		//conf.set("mapred.reduce.tasks","2");
-
-		File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
-		ArrayWritable stopWordsArray = new ArrayWritable(Words.readStopWords(file));
-		//conf.set("stopWords", stopWordsArray);			// Set path to file in configuration
-		
-		Job job = new Job(conf, "word count");
-		job.setJarByClass(WordCount.class);
-		job.setMapperClass(Mapper_A.class);
-		job.setPartitionerClass(Partitioner_A.class);
-		job.setCombinerClass(Reducer_A.class);
-		job.setReducerClass(Reducer_A.class);
-		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(IntWritable.class);
-		FileInputFormat.addInputPath(job, new Path(args[0]));
-		FileOutputFormat.setOutputPath(job, new Path(args[1]));
-		System.exit(job.waitForCompletion(true) ? 0 : 1);
-	}
-
-}
