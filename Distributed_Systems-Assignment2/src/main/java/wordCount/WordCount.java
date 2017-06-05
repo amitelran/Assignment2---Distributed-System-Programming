@@ -2,7 +2,9 @@ package wordCount;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -12,6 +14,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.join.TupleWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -41,11 +44,9 @@ public class WordCount {
 	// To Reducer: KEYOUT = word (Text), VALUEOUT = tuple (TweetKey, TweetValue, number of times word appeared in tweet, maximal number of times any word appeared in the tweet)
 
 
-	public static class Mapper_A extends Mapper<TweetKey, TweetValue, TweetKey, VectorCorpus> {
+	public static class Mapper_A extends Mapper<TweetKey, TweetValue, TweetKey, TupleWritable> {
 
 		private Text word = new Text();										// Each word in the text
-		//private final static IntWritable one = new IntWritable(1);			// Set the value for each word as '1' (before reducer)
-
 
 		// The map function gets tweetKey & tweetValue. 
 		// It generates CorpusVector object that corresponds to the given tweetKey.
@@ -54,11 +55,8 @@ public class WordCount {
 		@Override
 		public void map(TweetKey tweetKey, TweetValue tweetValue, Context context) throws IOException,  InterruptedException {
 			
-			// Set stop words vector from file
-			context.getConfiguration().get("stopWordsFilePath");
-			Vector<String> stopWords = new Vector<String>();
-			File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
-			Words.readStopWords(file, stopWords);
+			// Set stop words list from Strings array in configuration
+			List<String> stopWords = Arrays.asList(context.getConfiguration().getStrings("stopWords"));
 			
 			int maxOccur = 0;
 			int currVal = 0;
@@ -71,8 +69,8 @@ public class WordCount {
 			while (itr.hasMoreTokens()) {
 					word.set(itr.nextToken());		
 					
-					// Check if word is a stop word (if it is, ignore it)
-					if (!(Words.isStopWord(word.toString(), stopWords))) {						
+					// Check that word is not a stop word (if it is, ignore it)
+					if (!(stopWords.contains(word.toString()))) {						
 						if (!(occurVector.containsKey(word.toString()))){					// Check if the vector doesn't already contain the word
 							occurVector.put(word.toString(), 1);
 							
@@ -92,10 +90,13 @@ public class WordCount {
 						}
 					}			
 			}
-			Writable[] writArr = { tweetKey, tweetValue, 
-			TupleWritable tweetTuple = new TupleWritable
-			context.write(tweetKey, tweetTuple);
-		}
+			
+			for (Map.Entry<String, Integer> entry : occurVector.entrySet())
+			{
+				Writable[] writArr = { tweetKey, tweetValue, new IntWritable(occurVector.get(word.toString())), new IntWritable(maxOccur) };
+				TupleWritable tweetTuple = new TupleWritable(writArr);
+				context.write(tweetKey, tweetTuple);
+			}
 	}
 
 
@@ -153,7 +154,7 @@ public class WordCount {
 
 		File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
 		ArrayWritable stopWordsArray = new ArrayWritable(Words.readStopWords(file));
-		conf.set("stopWords", stopWordsArray);			// Set path to file in configuration
+		//conf.set("stopWords", stopWordsArray);			// Set path to file in configuration
 		
 		Job job = new Job(conf, "word count");
 		job.setJarByClass(WordCount.class);

@@ -104,7 +104,7 @@ public class Words {
 	/***************	Check if the stopWords vector contains the term	 ***************/
 	
 	
-	public static boolean isStopWord(String term, Vector<String> stopWords) {
+	public static boolean isStopWord(String term, List<String> stopWords) {
 		return stopWords.contains(term);
 	}
 	
