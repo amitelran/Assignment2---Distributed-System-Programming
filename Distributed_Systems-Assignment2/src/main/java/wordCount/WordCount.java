@@ -76,7 +76,7 @@ public class WordCount {
 					currVal = occurMap.get(curWord);
 					if(currVal == null)
 						currVal = 0;
-					occurMap.put(word.toString(), currVal++);
+					occurMap.put(word.toString(), currVal+1);
 				}
 				// If needed, update maximal number of occurrences 
 				if (maxOccur < currVal) {
