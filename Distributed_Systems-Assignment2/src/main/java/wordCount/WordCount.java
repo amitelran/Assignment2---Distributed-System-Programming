@@ -59,41 +59,34 @@ public class WordCount {
 			List<String> stopWords = Arrays.asList(context.getConfiguration().getStrings("stopWords"));
 			
 			int maxOccur = 0;
-			int currVal = 0;
-			Map<String, Integer> occurVector = new HashMap<String, Integer>();
+			Integer currVal;
+			Map<String, Integer> occurMap = new HashMap<String, Integer>();
 			
+			String curWord;
 			String tweetText = tweetValue.getText();
 			StringTokenizer itr = new StringTokenizer(tweetText);
 			
 			// Iterate through all words in tweet text
 			while (itr.hasMoreTokens()) {
-					word.set(itr.nextToken());		
-					
-					// Check that word is not a stop word (if it is, ignore it)
-					if (!(stopWords.contains(word.toString()))) {						
-						if (!(occurVector.containsKey(word.toString()))){					// Check if the vector doesn't already contain the word
-							occurVector.put(word.toString(), 1);
-							
-							// Initialize maximal number of occurrences 
-							if (maxOccur == 0) {
-								maxOccur = 1;
-							}
-						}
-						else {
-							currVal = occurVector.get(word.toString()) + 1;					// Increment counter of word in vector
-							occurVector.put(word.toString(), currVal);
-							
-							// If needed, update maximal number of occurrences 
-							if (maxOccur < currVal) {
-								maxOccur = currVal;
-							}
-						}
-					}			
-			}
+				curWord = itr.nextToken(); 
+				word.set(curWord);		
+
+				// Check that word is not a stop word (if it is, ignore it)
+				if (!(stopWords.contains(word.toString()))) {	
+					currVal = occurMap.get(curWord);
+					if(currVal == null)
+						currVal = 0;
+					occurMap.put(word.toString(), currVal++);
+				}
+				// If needed, update maximal number of occurrences 
+				if (maxOccur < currVal) {
+					maxOccur = currVal;
+				}
+			}			
 			
-			for (Map.Entry<String, Integer> entry : occurVector.entrySet())
+			for (Map.Entry<String, Integer> entry : occurMap.entrySet())
 			{
-				Writable[] writArr = { tweetKey, tweetValue, new IntWritable(occurVector.get(word.toString())), new IntWritable(maxOccur) };
+				Writable[] writArr = { tweetKey, tweetValue, new IntWritable(occurMap.get(word.toString())), new IntWritable(maxOccur) };
 				TupleWritable tweetTuple = new TupleWritable(writArr);
 				context.write(tweetKey, tweetTuple);
 			}
