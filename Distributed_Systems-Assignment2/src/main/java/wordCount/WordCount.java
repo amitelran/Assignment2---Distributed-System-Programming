@@ -155,7 +155,6 @@ public class WordCount {
 		ArrayWritable stopWordsArray = new ArrayWritable(Words.readStopWords(file));
 		conf.set("stopWords", stopWordsArray);			// Set path to file in configuration
 		
-		
 		Job job = new Job(conf, "word count");
 		job.setJarByClass(WordCount.class);
 		job.setMapperClass(Mapper_A.class);
