@@ -67,6 +67,7 @@ public class VectorCorpus implements WritableComparable<VectorCorpus> {
 	
 	
 	
+	
 	/*******************	Generate Sparse Vector  	********************/
 	// Key in the sparse vector : The term's index in the Corpus vector
 	// Value in the sparse vector : The term's tf_idf

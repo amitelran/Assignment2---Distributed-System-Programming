@@ -5,7 +5,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Vector;
 
 import recordReader.TweetKey;
@@ -20,13 +23,14 @@ public class Words {
 	// Map all stop words in file to the input map
 	
 	
-	public static void readStopWords(File file, Vector<String> stopWords) throws FileNotFoundException, IOException {
-		try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
-		    String line;
-		    while ((line = bufferedReader.readLine()) != null) {
-		    	stopWords.add(line);
-		    }
+	public static String[] readStopWords(File file) throws FileNotFoundException, IOException {
+		Scanner sc = new Scanner(file);
+		List<String> lines = new ArrayList<String>();
+		while (sc.hasNextLine()) {
+			lines.add(sc.nextLine());
 		}
+		String[] stopWordsArray = lines.toArray(new String[0]);
+		return stopWordsArray;
 	}
 	
 	

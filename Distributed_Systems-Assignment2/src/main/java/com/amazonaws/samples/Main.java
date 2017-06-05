@@ -27,10 +27,7 @@ public class Main {
 		//DefaultAWSCredentialsProviderChain credentials = new DefaultAWSCredentialsProviderChain();			// Search and get credentials file in system
 		//AmazonElasticMapReduce mapReduce = AmazonElasticMapReduceClientBuilder.standard().withCredentials(credentials).withRegion(Regions.US_EAST_1).build();
 		 
-		// Set stop words vector from file
-		Vector<String> stopWords = new Vector<String>();
-		File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
-		Words.readStopWords(file, stopWords);
+		
 		
 		/*
 		HadoopJarStepConfig hadoopJarStep = new HadoopJarStepConfig()

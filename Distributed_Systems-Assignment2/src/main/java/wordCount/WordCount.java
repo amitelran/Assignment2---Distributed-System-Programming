@@ -2,14 +2,17 @@ package wordCount;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.join.TupleWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -35,7 +38,7 @@ public class WordCount {
 	/**********************		Mapper_A	**********************/
 	// Mapper <KEYIN, VALUEIN, KEYOUT, VALUEOUT>
 	// From RecordReader: KEYIN = TweetKey, VALUEIN = TweetValue 
-	// To Reducer: KEYOUT = tweetKey, VALUEOUT = CorpusVector that corresponds to the tweetKey
+	// To Reducer: KEYOUT = word (Text), VALUEOUT = tuple (TweetKey, TweetValue, number of times word appeared in tweet, maximal number of times any word appeared in the tweet)
 
 
 	public static class Mapper_A extends Mapper<TweetKey, TweetValue, TweetKey, VectorCorpus> {
@@ -57,15 +60,41 @@ public class WordCount {
 			File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
 			Words.readStopWords(file, stopWords);
 			
-			VectorCorpus tweetVector = new VectorCorpus(tweetKey);
+			int maxOccur = 0;
+			int currVal = 0;
+			Map<String, Integer> occurVector = new HashMap<String, Integer>();
+			
 			String tweetText = tweetValue.getText();
-			StringTokenizer itr = new StringTokenizer(tweetText); 
+			StringTokenizer itr = new StringTokenizer(tweetText);
+			
+			// Iterate through all words in tweet text
 			while (itr.hasMoreTokens()) {
-					word.set(itr.nextToken()); 
-					//context.write(word, one);		
-					tweetVector.updateWordVector(word.toString(), stopWords);	
+					word.set(itr.nextToken());		
+					
+					// Check if word is a stop word (if it is, ignore it)
+					if (!(Words.isStopWord(word.toString(), stopWords))) {						
+						if (!(occurVector.containsKey(word.toString()))){					// Check if the vector doesn't already contain the word
+							occurVector.put(word.toString(), 1);
+							
+							// Initialize maximal number of occurrences 
+							if (maxOccur == 0) {
+								maxOccur = 1;
+							}
+						}
+						else {
+							currVal = occurVector.get(word.toString()) + 1;					// Increment counter of word in vector
+							occurVector.put(word.toString(), currVal);
+							
+							// If needed, update maximal number of occurrences 
+							if (maxOccur < currVal) {
+								maxOccur = currVal;
+							}
+						}
+					}			
 			}
-			context.write(tweetKey, tweetVector);
+			Writable[] writArr = { tweetKey, tweetValue, 
+			TupleWritable tweetTuple = new TupleWritable
+			context.write(tweetKey, tweetTuple);
 		}
 	}
 
@@ -122,8 +151,9 @@ public class WordCount {
 		//conf.set("mapred.map.tasks","10");
 		//conf.set("mapred.reduce.tasks","2");
 
-		
-		conf.set("stopWordsFilePath", "C:\\Users\\Amir\\Desktop\\stop_words.txt");			// Set path to file in configuration
+		File file = new File("C:\\Users\\Amir\\Desktop\\stop_words.txt");
+		ArrayWritable stopWordsArray = new ArrayWritable(Words.readStopWords(file));
+		conf.set("stopWords", stopWordsArray);			// Set path to file in configuration
 		
 		
 		Job job = new Job(conf, "word count");
