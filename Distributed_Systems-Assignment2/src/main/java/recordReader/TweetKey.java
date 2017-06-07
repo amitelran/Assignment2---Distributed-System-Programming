@@ -21,7 +21,9 @@ public class TweetKey implements WritableComparable<TweetKey> {
             
     
     /***************	 Constructors	 ***************/
+
     
+    public TweetKey() {}
     
     public TweetKey(long id, String createdAt) {
         this.id = id;

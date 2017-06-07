@@ -19,6 +19,7 @@ public class TweetValue implements Writable {
     
     /***************	 Constructor - receives JSON object and parses to a TweetValue object	 ***************/
 
+    public TweetValue(){}
     
     public TweetValue(JSONObject tweetJson) throws ParseException {
         username = tweetJson.getJSONObject("user").getString("name"); 

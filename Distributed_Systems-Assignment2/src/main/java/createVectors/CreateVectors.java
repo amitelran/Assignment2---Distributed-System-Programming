@@ -1,8 +1,5 @@
 package createVectors;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,7 +22,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import com.google.common.collect.Iterables;
 
-import corpusData.Words;
 import recordReader.TweetInputFormat;
 import recordReader.TweetKey;
 import recordReader.TweetValue;
@@ -39,61 +35,13 @@ import org.apache.hadoop.io.LongWritable;
 public class CreateVectors { 
 
 
-	/**********************		writableArray_A	**********************/
-
-
-	public static class writableArray_A implements Writable {
-
-		private TweetKey tweetKey;
-		private TweetValue tweetValue;
-		private int wordOccurInTweet;
-		private int maxOccur;
-
-		// Default constructor to allow (de)serialization
-		writableArray_A() {}
-		
-		writableArray_A(TweetKey tweetKey, TweetValue tweetValue, int wordOccurTweet, int maxOccurrences) {
-			this.tweetKey = tweetKey;
-			this.tweetValue = tweetValue;
-			this.wordOccurInTweet = wordOccurTweet;
-			this.maxOccur = maxOccurrences;
-		}
-
-		writableArray_A(DataInput in) throws IOException {
-			this.readFields(in);
-		}
-
-		public void write(DataOutput out) throws IOException {
-			tweetKey.write(out);
-			tweetValue.write(out);
-			out.writeInt(wordOccurInTweet);
-			out.writeInt(maxOccur);
-		}
-
-
-		public void readFields(DataInput in) throws IOException {
-			tweetKey.readFields(in);
-			tweetValue.readFields(in);
-			wordOccurInTweet = in.readInt();
-			maxOccur = in.readInt();
-		}
-		
-		
-		public TweetKey getTweetKey() { return this.tweetKey; }
-		public TweetValue getTweetValue() { return this.tweetValue; }
-		public int getWordOccurInTweet() { return this.wordOccurInTweet; }
-		public int getMaxOccur() { return this.maxOccur; }
-	}
-
-
-	
 	/**********************		Mapper_A	**********************/
 	// Mapper <KEYIN, VALUEIN, KEYOUT, VALUEOUT>
 	// From RecordReader: KEYIN = TweetKey, VALUEIN = TweetValue 
 	// To Reducer: KEYOUT = word (Text), VALUEOUT = tuple (TweetKey, TweetValue, number of times word appeared in tweet, maximal number of times any word appeared in the tweet)
 
 
-	public static class Mapper_A extends Mapper<TweetKey, TweetValue, Text, writableArray_A> {
+	public static class Mapper_A extends Mapper<TweetKey, TweetValue, Text, TupleWritable> {
 
 		private Text word = new Text();										// Each word in the text
 
@@ -135,90 +83,83 @@ public class CreateVectors {
 
 			for (Map.Entry<Text, Integer> entry : occurMap.entrySet())
 			{
-				writableArray_A writArr = new writableArray_A(tweetKey, tweetValue, entry.getValue(), maxOccur);
-				//Writable[] writArr = { tweetKey, tweetValue, new IntWritable(3), new IntWritable(maxOccur) };
-				//TupleWritable tweetTuple = new TupleWritable(writArr);
-				context.write(entry.getKey(), writArr);
+				Writable[] writArr = { tweetKey, tweetValue, new IntWritable(entry.getValue()), new IntWritable(maxOccur) };
+				TupleWritable tweetTuple = new TupleWritable(writArr);
+				context.write(entry.getKey(), tweetTuple);
 			}
 		}
 	}
 
 
 
-	/**********************		REDUCER_A	**********************/
-	// Reducer <KEYIN, VALUEIN, KEYOUT, VALUEOUT>
-	// From Mapper_A: KEYIN = TweetKey, VALUEIN = CorpusVector that corresponds to the tweetKey
-	// To output: KEYOUT = word, VALUEOUT = accumulated number of occurrences in tweet
+		/**********************		REDUCER_A	**********************/
+		// Reducer <KEYIN, VALUEIN, KEYOUT, VALUEOUT>
+		// From Mapper_A: KEYIN = TweetKey, VALUEIN = CorpusVector that corresponds to the tweetKey
+		// To output: KEYOUT = word, VALUEOUT = accumulated number of occurrences in tweet
 
 
-	public static class Reducer_A extends Reducer<Text, writableArray_A, LongWritable, TupleWritable> {
-
-		long numOfTweets;
-
-		@Override
-		protected void setup(Reducer<Text, writableArray_A, LongWritable, TupleWritable>.Context context) throws IOException, InterruptedException {
-			Counter counter = context.getCounter(TaskCounter.MAP_INPUT_RECORDS);
-			numOfTweets = counter.getValue();
-			super.setup(context);
-		}
-
-		@Override
-		public void reduce(Text word, Iterable<writableArray_A> ourArrays, Context context) throws IOException,  InterruptedException {
-			int tf_d;
-			int max_occur;
-			int num_of_tweets_contains_word = Iterables.size(ourArrays);
-
-			double tf;
-			double idf;
-
-			double tf_idf;
-
-			for (writableArray_A arr : ourArrays) {
-				tf_d = arr.getWordOccurInTweet();
-				//tf_d = ((IntWritable) tuple.get(2)).get();
-				max_occur = arr.getMaxOccur();
-				//max_occur = ((IntWritable) tuple.get(3)).get();
-
-				tf = 0.5 + 0.5*(tf_d/max_occur);
-				idf = Math.log(numOfTweets/num_of_tweets_contains_word);
-
-				tf_idf = tf*idf;
+		public static class Reducer_A extends Reducer<Text, TupleWritable, LongWritable, TupleWritable> {
+			
+			long numOfTweets;
+			
+			@Override
+			protected void setup(Reducer<Text, TupleWritable, LongWritable, TupleWritable>.Context context)
+					throws IOException, InterruptedException {
+				Counter counter = context.getCounter(TaskCounter.MAP_INPUT_RECORDS);
+				numOfTweets = counter.getValue();
+				super.setup(context);
+			}
+			
+			@Override
+			public void reduce(Text word, Iterable<TupleWritable> tuples, Context context) throws IOException,  InterruptedException {
+				int tf_d;
+				int max_occur;
+				int num_of_tweets_contains_word = Iterables.size(tuples);
 				
-				Writable[] wordTuple = {word,new DoubleWritable(tf_idf)};
-				//context.write( new LongWritable(((TweetKey)tuple.get(0)).getID()), new TupleWritable(wordTuple)); 
+				double tf;
+				double idf;
 				
-				context.write(new LongWritable(arr.getTweetKey().getID()), new TupleWritable(wordTuple));
+				double tf_idf;
+				
+				for (TupleWritable tuple : tuples) {
+					tf_d = ((IntWritable) tuple.get(2)).get();
+					max_occur = ((IntWritable) tuple.get(3)).get();
+					
+					tf = 0.5 + 0.5*(tf_d/max_occur);
+					idf = Math.log(numOfTweets/num_of_tweets_contains_word);
 
+					tf_idf = tf*idf;
+					Writable[] wordTuple = {word,new DoubleWritable(tf_idf)};
+					context.write( new LongWritable(((TweetKey)tuple.get(0)).getID()), new TupleWritable(wordTuple)); 
+				}
 			}
 		}
+
+		public static void main(String[] args) throws Exception {
+			Configuration conf = new Configuration();
+			//conf.set("mapred.map.tasks","10");
+			//conf.set("mapred.reduce.tasks","2");
+
+//			File file = new File(args[2]);
+			String stopWords[] = {"a", "about", "above", "across", "after", "afterwards"};
+			conf.setStrings("stopWords", stopWords);
+			
+
+		    Job job = Job.getInstance(conf, "TweetVectors");
+		    
+			job.setJarByClass(CreateVectors.class);
+			job.setMapperClass(Mapper_A.class);
+			job.setCombinerClass(Reducer_A.class);
+			job.setReducerClass(Reducer_A.class);
+			job.setOutputKeyClass(LongWritable.class);
+			job.setMapOutputKeyClass(Text.class);
+			job.setMapOutputValueClass(TupleWritable.class);
+			job.setOutputKeyClass(LongWritable.class);
+			job.setOutputValueClass(TupleWritable.class);
+			job.setInputFormatClass(TweetInputFormat.class);
+			TweetInputFormat.addInputPath(job, new Path(args[0]));
+			FileOutputFormat.setOutputPath(job, new Path(args[1]));
+			System.exit(job.waitForCompletion(true) ? 0 : 1);
+		}
+
 	}
-
-	public static void main(String[] args) throws Exception {
-		Configuration conf = new Configuration();
-		//conf.set("mapred.map.tasks","10");
-		//conf.set("mapred.reduce.tasks","2");
-
-		//			File file = new File(args[2]);
-		String stopWords[] = {"a", "about", "above", "across", "after", "afterwards"};
-		conf.setStrings("stopWords", stopWords);
-
-
-		Job job = Job.getInstance(conf, "TweetVectors");
-
-		job.setJarByClass(CreateVectors.class);
-		job.setMapperClass(Mapper_A.class);
-		job.setCombinerClass(Reducer_A.class);
-		job.setReducerClass(Reducer_A.class);
-
-		job.setOutputKeyClass(LongWritable.class);
-		job.setMapOutputKeyClass(Text.class);
-		job.setMapOutputValueClass(writableArray_A.class);
-		job.setOutputKeyClass(LongWritable.class);
-		job.setOutputValueClass(TupleWritable.class);
-		job.setInputFormatClass(TweetInputFormat.class);
-		TweetInputFormat.addInputPath(job, new Path(args[0]));
-		FileOutputFormat.setOutputPath(job, new Path(args[1]));
-		System.exit(job.waitForCompletion(true) ? 0 : 1);
-	}
-
-}

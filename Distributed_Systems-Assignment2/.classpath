@@ -32,8 +32,8 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/Yoav/Dropbox/מודולו/תכנות מערכות מבוזרות/Assignment2/Jars/hadoop-common-2.2.0.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Yoav/Dropbox/מודולו/תכנות מערכות מבוזרות/Assignment2/Jars/hadoop-mapreduce-client-core-2.2.0.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Yoav/Dropbox/מודולו/תכנות מערכות מבוזרות/Assignment2/Jars/json-20140107.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Yoav/Dropbox/מודולו/תכנות מערכות מבוזרות/Assignment2/lib/hadoop-common-2.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Yoav/Dropbox/מודולו/תכנות מערכות מבוזרות/Assignment2/lib/hadoop-mapreduce-client-core-2.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Yoav/Dropbox/מודולו/תכנות מערכות מבוזרות/Assignment2/lib/json-20140107.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
